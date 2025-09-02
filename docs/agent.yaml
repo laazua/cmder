@@ -1,0 +1,8 @@
+---
+# agent配置文件
+# 重命名为: config.yml
+
+addr: 0.0.0.0:5544
+taskNum: 8
+readTimeout: 60m
+writeTimeout: 60m
