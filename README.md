@@ -14,8 +14,8 @@ method GET /api/cmd/out?task_id=0929129c-a44b-4bab-8f64-99a7cba45339
 method GET /api/cmd/list
 ```
 
-- **示例**
-  [web示例](docs/cmd-runner.png)
+- **示例**  
+  ![web示例](docs/cmd-runner.png)
 
 
 <!-- - **接口测试**
