@@ -12,7 +12,6 @@ method GET /api/cmd/out?task_id=0929129c-a44b-4bab-8f64-99a7cba45339
 
 method GET /api/cmd/ids
 ```
-
 - **示例**  
   ![web示例](docs/cmder.png)
 
