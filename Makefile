@@ -16,7 +16,7 @@ endif
 build: $(agent_bin) $(proxy_bin)
 
 $(agent_bin): cmd/agent/*.go
-	go build -C cmd/agent -o $(agent)
+	go build -C cmd/agent -o $(agent) -mod=vendor -ldflags="-w -s"
 	@if [ ! -d bin/agent ]; then \
 		mkdir -p bin/agent; \
 	fi
@@ -26,7 +26,7 @@ $(agent_bin): cmd/agent/*.go
 	fi
 
 $(proxy_bin): cmd/proxy/*.go
-	go build -C cmd/proxy -o $(proxy)
+	go build -C cmd/proxy -o $(proxy) -mod=vendor -ldflags="-w -s"
 	@if [ ! -d bin/proxy ]; then \
 		mkdir -p bin/proxy; \
 	fi
@@ -49,6 +49,7 @@ proxy: $(proxy_bin)
 	@trap '' INT; cd bin/proxy && ./$(proxy) || true
 
 clean:
+	rm -rf bin
 	rm -f cmd/agent/$(agent)
 	rm -f cmd/proxy/$(proxy)
-	rm -rf bin
+	
