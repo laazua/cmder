@@ -11,16 +11,14 @@ import (
 const maxLogBuffer = 200 // 日志缓存行数
 
 type task struct {
-	Id      string
-	Cmd     *exec.Cmd
-	stdout  io.ReadCloser
-	stderr  io.ReadCloser
-	started bool
-
-	mu       sync.Mutex
-	clients  map[*websocket.Conn]struct{} // 多个 WS 客户端
-	finished bool
-
+	Id        string
+	Cmd       *exec.Cmd
+	stdout    io.ReadCloser
+	stderr    io.ReadCloser
+	started   bool
+	mu        sync.Mutex
+	clients   map[*websocket.Conn]struct{} // 多个 WS 客户端
+	finished  bool
 	logBuffer [][]byte // 最近日志缓存
 }
 

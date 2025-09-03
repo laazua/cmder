@@ -4,7 +4,7 @@
 
 addr: 0.0.0.0:5544
 # 设置允许允许的任务数量
-taskNum: 8
+taskNum: 5
 readTimeout: 60m
 writeTimeout: 60m
 # 接口请求密钥校验

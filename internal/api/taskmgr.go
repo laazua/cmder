@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmder/internal/config"
 	"errors"
 	"sync"
 )
@@ -18,7 +19,7 @@ var (
 func (m *taskManager) Set(id string, t *task) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if len(m.tasks) >= 10 { // 可加并发上限
+	if len(m.tasks) >= config.GetAgent().TaskNum { // 可加并发上限
 		return ErrTooManyTasks
 	}
 	m.tasks[id] = t
