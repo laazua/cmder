@@ -8,7 +8,7 @@ import (
 var (
 	// 预留命令行参数
 	ProxyFile string
-	proxy     *loader[Proxy]
+	ProxyC    *Loader[Proxy]
 )
 
 type Proxy struct {
@@ -16,7 +16,7 @@ type Proxy struct {
 	ReadTimeout  time.Duration `yaml:"readTimeout" default:"30m"`
 	WriteTimeout time.Duration `yaml:"writeTimeout" default:"30m"`
 	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
-	WhiteList    []string      `ymal:"whiteList" default:"127.0.0.1"`
+	WhiteList    []string      `yaml:"whiteList"`
 	Targets      []Target      `yaml:"targets"`
 }
 
@@ -27,17 +27,28 @@ type Target struct {
 
 func (p *Proxy) Validate() error {
 	if p.Addr == "" {
-		return errors.New("addr must not be empty")
+		return errors.New("监听地址不能为空")
 	}
-	if p.Targets == nil {
-		return errors.New("targets must not be empty")
+	if len(p.Targets) == 0 {
+		return errors.New("目标主机配置不能为空")
+	}
+	if len(p.WhiteList) == 0 {
+		return errors.New("主机白名单列表不能为空")
 	}
 	return nil
+}
+
+func (p *Proxy) GetWhiteList() []string {
+	return p.WhiteList
+}
+
+func (p *Proxy) GetXSecurityKey() string {
+	return p.XSecurityKey
 }
 
 func GetProxy() *Proxy {
 	if ProxyFile == "" {
 		ProxyFile = "./config.yaml"
 	}
-	return getConfig(&proxy, ProxyFile)
+	return getConfig(&ProxyC, ProxyFile)
 }

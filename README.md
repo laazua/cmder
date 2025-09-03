@@ -14,7 +14,7 @@ method GET /api/cmd/ids
 ```
 
 - **示例**  
-  ![web示例](docs/cmd-runner.png)
+  ![web示例](docs/cmder.png)
 
 
 <!-- - **接口测试**

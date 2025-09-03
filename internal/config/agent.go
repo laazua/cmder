@@ -8,7 +8,7 @@ import (
 var (
 	// 预留命令行参数
 	AgentFile string
-	agent     *loader[Agent]
+	AgentC    *Loader[Agent]
 )
 
 type Agent struct {
@@ -17,19 +17,30 @@ type Agent struct {
 	ReadTimeout  time.Duration `yaml:"readTimeout" default:"60m"`
 	WriteTimeout time.Duration `yaml:"writeTimeout" default:"60m"`
 	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
-	WhiteList    []string      `ymal:"whiteList" default:"127.0.0.1"`
+	WhiteList    []string      `yaml:"whiteList"`
 }
 
 func (a *Agent) Validate() error {
 	if a.Addr == "" {
-		return errors.New("addr must not be empty")
+		return errors.New("监听地址不能为空")
+	}
+	if len(a.WhiteList) == 0 {
+		return errors.New("主机白名单不能为空")
 	}
 	return nil
+}
+
+func (a *Agent) GetWhiteList() []string {
+	return a.WhiteList
+}
+
+func (a *Agent) GetXSecurityKey() string {
+	return a.XSecurityKey
 }
 
 func GetAgent() *Agent {
 	if AgentFile == "" {
 		AgentFile = "./config.yaml"
 	}
-	return getConfig(&agent, AgentFile)
+	return getConfig(&AgentC, AgentFile)
 }

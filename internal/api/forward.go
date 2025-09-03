@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmder/internal/config"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,7 +16,7 @@ import (
 func forwardHTTP(w http.ResponseWriter, r *http.Request, targetURI string) {
 	u, err := url.Parse(targetURI)
 	if err != nil {
-		http.Error(w, "bad target uri: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "无效的uri: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	u.Path = singleJoinPath(u.Path, r.URL.Path)
@@ -23,15 +24,16 @@ func forwardHTTP(w http.ResponseWriter, r *http.Request, targetURI string) {
 
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, u.String(), r.Body)
 	if err != nil {
-		http.Error(w, "new request failed: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "新建转发请求失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// 透传头
+	req.Header.Set("X-Security-Key", config.GetProxy().XSecurityKey)
 	copyHeaders(req.Header, r.Header, nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		http.Error(w, "proxy http error: "+err.Error(), http.StatusBadGateway)
+		http.Error(w, "http转发出错: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -47,7 +49,7 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 	// 1) 构造后端 ws/wss URL
 	wsURL, err := url.Parse(targetURI)
 	if err != nil {
-		http.Error(w, "invalid target uri: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "无效的uri: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	switch strings.ToLower(wsURL.Scheme) {
@@ -73,6 +75,8 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 	)
 
 	backendHeaders := http.Header{}
+	// 透传头
+	r.Header.Set("X-Security-Key", config.GetProxy().XSecurityKey)
 	copyHeaders(backendHeaders, r.Header, skip)
 
 	// 可选：把客户端请求的子协议传给后端（但不要放到 header，交给 Dialer.Subprotocols）
@@ -94,7 +98,7 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 
 	backendConn, _, err := dialer.Dial(wsURL.String(), backendHeaders)
 	if err != nil {
-		http.Error(w, "dial backend failed: "+err.Error(), http.StatusBadGateway)
+		http.Error(w, "拨号agent失败: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer backendConn.Close()
@@ -130,64 +134,6 @@ func proxyCopy(errc chan<- error, src, dst *websocket.Conn) {
 		if err := dst.WriteMessage(mt, msg); err != nil {
 			errc <- err
 			return
-		}
-	}
-}
-
-// ---------------- 工具函数 ----------------
-
-func isWebSocketRequest(r *http.Request) bool {
-	// Connection 可能是 "Upgrade, keep-alive"
-	if !headerHasToken(r.Header, "Connection", "upgrade") {
-		return false
-	}
-	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
-}
-
-func headerHasToken(h http.Header, key, want string) bool {
-	for _, v := range h.Values(key) {
-		for _, p := range strings.Split(v, ",") {
-			if strings.EqualFold(strings.TrimSpace(p), want) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func singleJoinPath(a, b string) string {
-	switch {
-	case a == "":
-		return b
-	case b == "":
-		return a
-	case strings.HasSuffix(a, "/") && strings.HasPrefix(b, "/"):
-		return a + b[1:]
-	case !strings.HasSuffix(a, "/") && !strings.HasPrefix(b, "/"):
-		return a + "/" + b
-	default:
-		return a + b
-	}
-}
-
-func canonicalSet(keys ...string) map[string]struct{} {
-	m := make(map[string]struct{}, len(keys))
-	for _, k := range keys {
-		m[http.CanonicalHeaderKey(k)] = struct{}{}
-	}
-	return m
-}
-
-func copyHeaders(dst, src http.Header, skip map[string]struct{}) {
-	for k, vs := range src {
-		ck := http.CanonicalHeaderKey(k)
-		if skip != nil {
-			if _, ok := skip[ck]; ok {
-				continue
-			}
-		}
-		for _, v := range vs {
-			dst.Add(ck, v)
 		}
 	}
 }

@@ -17,11 +17,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func AddCmd(w http.ResponseWriter, r *http.Request) {
-	if !ipWhiteList(r) {
-		slog.Info("你不允许访问")
-		http.Error(w, "你想干嘛", http.StatusForbidden)
-		return
-	}
 	slog.Info("/api/cmd/run ...")
 	var req struct {
 		Cmd string `json:"cmd"`
@@ -48,16 +43,12 @@ func AddCmd(w http.ResponseWriter, r *http.Request) {
 }
 
 func OutCmd(w http.ResponseWriter, r *http.Request) {
-	if !ipWhiteList(r) {
-		slog.Info("你不允许访问")
-		http.Error(w, "你想干嘛", http.StatusForbidden)
-		return
-	}
+
 	slog.Info("/api/cmd/out ...")
 	taskId := r.URL.Query().Get("task_id")
 	rtask, ok := tasks.Get(taskId)
 	if !ok {
-		http.Error(w, "task not found", http.StatusNotFound)
+		http.Error(w, "任务未找到", http.StatusNotFound)
 		return
 	}
 
@@ -100,14 +91,11 @@ func OutCmd(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 	rtask.mu.Unlock()
+	slog.Info("xxxxxxxxxxxxxxxx")
 }
 
 func ListTask(w http.ResponseWriter, r *http.Request) {
-	if !ipWhiteList(r) {
-		slog.Info("你不允许访问")
-		http.Error(w, "你想干嘛", http.StatusForbidden)
-		return
-	}
+
 	slog.Info("/api/cmd/ids ...")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"target": r.URL.Query().Get("name"),

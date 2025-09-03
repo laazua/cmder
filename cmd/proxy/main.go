@@ -20,8 +20,10 @@ func main() {
 	//     /api/cmd/add
 	//     /api/cmd/out
 	//     /api/cmd/ids
-	mux.HandleFunc("/", api.Index)
-	mux.HandleFunc("/api/cmd/", api.Forward)
+	index := api.IpCheck(config.GetProxy(), api.Index)
+	forword := api.IpCheck(config.GetProxy(), api.Forward)
+	mux.HandleFunc("/", index)
+	mux.HandleFunc("/api/cmd/", forword)
 	server := http.Server{
 		Addr:         config.GetProxy().Addr,
 		Handler:      mux,

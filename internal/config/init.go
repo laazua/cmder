@@ -10,25 +10,25 @@ import (
 )
 
 // Loader 泛型配置加载器
-type loader[T any] struct {
-	config     *T
+type Loader[T any] struct {
+	Config     *T
 	configPath string
 	once       sync.Once
 	loadErr    error
 }
 
 // newLoader 创建新的配置加载器实例
-func newLoader[T any](configPath string) *loader[T] {
-	return &loader[T]{
-		configPath: configPath,
+func newLoader[T any](configPath string) *Loader[T] {
+	absPath, _ := filepath.Abs(configPath)
+	return &Loader[T]{
+		configPath: absPath,
 	}
 }
 
 // load 加载配置
-func (l *loader[T]) load() error {
+func (l *Loader[T]) load() error {
 	l.once.Do(func() {
-		filePath := filepath.Join(".", l.configPath)
-		data, err := os.ReadFile(filePath)
+		data, err := os.ReadFile(l.configPath)
 		if err != nil {
 			l.loadErr = fmt.Errorf("读取配置文件失败: %v", err)
 			return
@@ -48,31 +48,31 @@ func (l *loader[T]) load() error {
 			}
 		}
 
-		l.config = &config
+		l.Config = &config
 	})
 
 	return l.loadErr
 }
 
-// get 获取配置实例
-func (l *loader[T]) get() *T {
-	if l.loadErr != nil {
-		panic(fmt.Sprintf("配置未正确加载: %v", l.loadErr))
+// Get 获取配置实例
+func (l *Loader[T]) Get() *T {
+	if l.Config == nil {
+		if err := l.load(); err != nil {
+			panic(fmt.Sprintf("配置未正确加载: %v", err))
+		}
 	}
-	return l.config
+	return l.Config
 }
 
 // getConfig 通用配置获取函数
-func getConfig[T any](loaderRef **loader[T], path string) *T {
+func getConfig[T any](loaderRef **Loader[T], path string) *T {
 	if *loaderRef != nil {
-		return (*loaderRef).get()
+		return (*loaderRef).Get()
 	}
-
 	l := newLoader[T](path)
 	if err := l.load(); err != nil {
 		panic(err)
 	}
-
 	*loaderRef = l
-	return l.get()
+	return l.Get()
 }

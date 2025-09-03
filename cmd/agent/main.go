@@ -15,9 +15,14 @@ import (
 func main() {
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/cmd/add", api.Key(api.AddCmd))
-	mux.HandleFunc("GET /api/cmd/out", api.Key(api.OutCmd))
-	mux.HandleFunc("GET /api/cmd/ids", api.Key(api.ListTask))
+	agentC := config.GetAgent()
+
+	addCmd := api.Key(agentC, api.IpCheck(agentC, api.AddCmd))
+	outCmd := api.Key(agentC, api.IpCheck(agentC, api.OutCmd))
+	listTask := api.Key(agentC, api.IpCheck(agentC, api.ListTask))
+	mux.HandleFunc("POST /api/cmd/add", addCmd)
+	mux.HandleFunc("GET /api/cmd/out", outCmd)
+	mux.HandleFunc("GET /api/cmd/ids", listTask)
 	// 资源占用情况调试
 	// go func() {
 	// 	for {
