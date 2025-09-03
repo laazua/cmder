@@ -7,21 +7,16 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-5xl bg-white shadow-xl rounded-lg p-10">
-    <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">CMDER</h1>
+    <h3 class="text-4xl font-bold mb-8 text-center text-gray-800">CMDER</h3>
 
     <!-- Step 1: Add Task -->
     <div class="mb-10">
-      <h2 class="text-2xl font-semibold mb-4 text-gray-700">第一步: 添加任务</h2>
+      <h5 class="text-2xl font-semibold mb-4 text-gray-700">第一步: 添加任务</h5>
       <form id="runForm" class="space-y-6">
         <div class="flex flex-wrap gap-6">
           <div class="flex-1">
             <label class="block text-gray-600 font-medium mb-1">选择主机</label>
-            <select id="agentName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <!-- 这里选择的值，与后端proxy配置文件中的targets对应 -->
-              <option value="test">test</option>
-              <option value="web">web</option>
-              <option value="backend">backend</option>
-            </select>
+            <select id="agentName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
           </div>
 
           <div class="flex-1">
@@ -36,16 +31,11 @@
 
     <!-- Step 2: Get Output -->
     <div class="mb-10">
-      <h2 class="text-2xl font-semibold mb-4 text-gray-700">第二步: 获取输出</h2>
+      <h5 class="text-2xl font-semibold mb-4 text-gray-700">第二步: 获取输出</h5>
       <form id="outForm" class="flex flex-wrap gap-6 items-end">
         <div class="flex-1">
           <label class="block text-gray-600 font-medium mb-1">选择主机</label>
-          <select id="outName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <!-- 这里选择的值，与后端proxy配置文件中的targets对应 -->
-            <option value="test">test</option>
-            <option value="web">web</option>
-            <option value="backend">backend</option>
-          </select>
+          <select id="outName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
         </div>
 
         <div class="flex-1">
@@ -73,7 +63,41 @@
 
     let currentWs = null; // 当前 WebSocket 连接
 
-    // Step 1: Run Task
+    // ========= 动态加载主机列表 =========
+    async function loadHosts() {
+      try {
+        const resp = await fetch("/api/targets");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const data = await resp.json();
+        const hosts = data.targets || [];
+
+        populateHosts("agentName", hosts);
+        populateHosts("outName", hosts);
+      } catch (err) {
+        console.error("加载主机列表失败:", err);
+        ["agentName", "outName"].forEach(id => {
+          const sel = document.getElementById(id);
+          sel.innerHTML = "<option value=''>加载失败</option>";
+        });
+      }
+    }
+
+    function populateHosts(selectId, hosts) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = ""; // 清空
+      hosts.forEach(h => {
+        const opt = document.createElement("option");
+        opt.value = h;
+        opt.textContent = h;
+        select.appendChild(opt);
+      });
+    }
+
+    // 页面加载时拉取主机列表
+    loadHosts();
+
+    // ========= Step 1: Run Task =========
     document.getElementById("runForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       outputDiv.innerHTML = "";
@@ -102,7 +126,7 @@
       }
     });
 
-    // Step 2: Agent change -> fetch tasks
+    // ========= Step 2: 选择主机 -> 加载任务列表 =========
     outNameSelect.addEventListener("change", async () => {
       const agentName = outNameSelect.value;
       try {
@@ -128,7 +152,7 @@
       }
     });
 
-    // Step 2: Connect WebSocket
+    // ========= Step 2: 连接 WebSocket 获取输出 =========
     document.getElementById("outForm").addEventListener("submit", (e) => {
       e.preventDefault();
       const taskId = outTaskSelect.value;

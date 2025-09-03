@@ -17,7 +17,7 @@ func Key(provider config.KeyProvider, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// IpCheck 验证i白名单
+// IpCheck 验证ip白名单
 func IpCheck(provider config.WhiteListProvider, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !iPInWhiteList(provider, r) {

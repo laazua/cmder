@@ -22,7 +22,9 @@ func main() {
 	//     /api/cmd/ids
 	index := api.IpCheck(config.GetProxy(), api.Index)
 	forword := api.IpCheck(config.GetProxy(), api.Forward)
+	targets := api.IpCheck(config.GetProxy(), api.Targets)
 	mux.HandleFunc("/", index)
+	mux.HandleFunc("/api/targets", targets)
 	mux.HandleFunc("/api/cmd/", forword)
 	server := http.Server{
 		Addr:         config.GetProxy().Addr,

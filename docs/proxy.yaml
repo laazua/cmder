@@ -6,10 +6,12 @@ addr: 0.0.0.0:5533
 readTimeout: 60m
 writeTimeout: 60m
 xSecurityKey: IznUi6Au2PU=
+# 放行ip白名单
 whiteList: 
   - 127.0.0.1
   - 192.168.154.144
 
+# 允许agent的主机列表
 targets:
   - name: test   # agent主机名
     address: http://127.0.0.1:5544  # agent服务请求接口

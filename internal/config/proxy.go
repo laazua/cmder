@@ -8,7 +8,7 @@ import (
 var (
 	// 预留命令行参数
 	ProxyFile string
-	ProxyC    *Loader[Proxy]
+	proxy     *Loader[Proxy]
 )
 
 type Proxy struct {
@@ -50,5 +50,5 @@ func GetProxy() *Proxy {
 	if ProxyFile == "" {
 		ProxyFile = "./config.yaml"
 	}
-	return getConfig(&ProxyC, ProxyFile)
+	return getConfig(&proxy, ProxyFile)
 }

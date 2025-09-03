@@ -16,6 +16,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+// AddCmd 添加命令任务
 func AddCmd(w http.ResponseWriter, r *http.Request) {
 	slog.Info("/api/cmd/run ...")
 	var req struct {
@@ -23,6 +24,11 @@ func AddCmd(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "请求参数错误", http.StatusBadRequest)
+		return
+	}
+	// 检查是否是封禁的命令
+	if forbiddenCmds(req.Cmd) {
+		http.Error(w, "封禁的命令,请联系管理员", http.StatusForbidden)
 		return
 	}
 
@@ -42,6 +48,7 @@ func AddCmd(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"task_id": taskId})
 }
 
+// OutCmd 执行任务并获取输出
 func OutCmd(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("/api/cmd/out ...")
@@ -79,21 +86,21 @@ func OutCmd(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				if exitErr, ok := err.(*exec.ExitError); ok {
 					if _, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-						rtask.closeAll("命令运行异常退出")
+						rtask.closeAll("=============== 命令运行异常退出 ===============")
 					}
 				}
 			} else {
 				if _, ok := rtask.Cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
-					rtask.closeAll("命令运行正常退出")
+					rtask.closeAll("=============== 命令运行正常退出 ===============")
 				}
 			}
 			tasks.Delete(taskId)
 		}()
 	}
 	rtask.mu.Unlock()
-	slog.Info("xxxxxxxxxxxxxxxx")
 }
 
+// ListTask 查询添加了哪些命令任务
 func ListTask(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("/api/cmd/ids ...")

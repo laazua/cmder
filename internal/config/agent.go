@@ -8,16 +8,17 @@ import (
 var (
 	// 预留命令行参数
 	AgentFile string
-	AgentC    *Loader[Agent]
+	agent     *Loader[Agent]
 )
 
 type Agent struct {
-	Addr         string        `yaml:"addr" default:"localhost:5544"`
-	TaskNum      int           `yaml:"taskNum" default:"8"`
-	ReadTimeout  time.Duration `yaml:"readTimeout" default:"60m"`
-	WriteTimeout time.Duration `yaml:"writeTimeout" default:"60m"`
-	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
-	WhiteList    []string      `yaml:"whiteList"`
+	Addr          string        `yaml:"addr" default:"localhost:5544"`
+	TaskNum       int           `yaml:"taskNum" default:"8"`
+	ReadTimeout   time.Duration `yaml:"readTimeout" default:"60m"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout" default:"60m"`
+	XSecurityKey  string        `yaml:"xSecurityKey" default:"xSecurityKey"`
+	WhiteList     []string      `yaml:"whiteList"`
+	ForbiddenCmds []string      `yaml:"forbiddenCmds"`
 }
 
 func (a *Agent) Validate() error {
@@ -42,5 +43,5 @@ func GetAgent() *Agent {
 	if AgentFile == "" {
 		AgentFile = "./config.yaml"
 	}
-	return getConfig(&AgentC, AgentFile)
+	return getConfig(&agent, AgentFile)
 }

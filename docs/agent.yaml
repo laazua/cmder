@@ -3,10 +3,16 @@
 # 重命名为: config.yml
 
 addr: 0.0.0.0:5544
+# 设置允许允许的任务数量
 taskNum: 8
 readTimeout: 60m
 writeTimeout: 60m
+# 接口请求密钥校验
 xSecurityKey: IznUi6Au2PU=
+# 放行ip白名单
 whiteList:
   - 127.0.0.1
   - 192.168.165.89
+# 被封禁的命令
+forbiddenCmds:
+  - ls

@@ -10,8 +10,10 @@ type taskManager struct {
 	tasks map[string]*task
 }
 
-var ErrTooManyTasks = errors.New("已经达到了运行任务的最大数量")
-var tasks = &taskManager{tasks: make(map[string]*task)}
+var (
+	ErrTooManyTasks = errors.New("已经达到了运行任务的最大数量")
+	tasks           = &taskManager{tasks: make(map[string]*task)}
+)
 
 func (m *taskManager) Set(id string, t *task) error {
 	m.mu.Lock()
