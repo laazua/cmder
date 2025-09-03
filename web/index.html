@@ -2,22 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Command Runner</title>
+<title>cmder</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-5xl bg-white shadow-xl rounded-lg p-10">
-    <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">Cmd-Runner</h1>
+    <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">CMDER</h1>
 
     <!-- Step 1: Add Task -->
     <div class="mb-10">
-      <h2 class="text-2xl font-semibold mb-4 text-gray-700">Step 1: Add Task</h2>
+      <h2 class="text-2xl font-semibold mb-4 text-gray-700">第一步: 添加任务</h2>
       <form id="runForm" class="space-y-6">
         <div class="flex flex-wrap gap-6">
-          <!-- Agent Name 下拉选择 -->
           <div class="flex-1">
-            <label class="block text-gray-600 font-medium mb-1">Agent Name</label>
+            <label class="block text-gray-600 font-medium mb-1">选择主机</label>
             <select id="agentName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <!-- 这里选择的值，与后端proxy配置文件中的targets对应 -->
               <option value="test">test</option>
               <option value="web">web</option>
               <option value="backend">backend</option>
@@ -25,97 +25,145 @@
           </div>
 
           <div class="flex-1">
-            <label class="block text-gray-600 font-medium mb-1">Command Name</label>
-            <input type="text" id="runName" value="xxxxx" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
-
-          <div class="flex-1">
-            <label class="block text-gray-600 font-medium mb-1">Command</label>
-            <input type="text" id="cmd" value="for((i=0;i<100;i++)) do echo hello;sleep 1;done" class="w-full border border-gray-300 rounded px-6 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label class="block text-gray-600 font-medium mb-1">命令</label>
+            <input type="text" id="cmd" placeholder="请输入要执行的命令" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
         </div>
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded shadow">Run</button>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded shadow">新增</button>
       </form>
-      <div class="mt-2 text-gray-700">Task ID: <span id="taskId" class="font-mono text-blue-600"></span></div>
+      <div class="mt-2 text-gray-700">添加任务返回: <span id="taskId" class="font-mono text-blue-600"></span></div>
     </div>
 
     <!-- Step 2: Get Output -->
     <div class="mb-10">
-      <h2 class="text-2xl font-semibold mb-4 text-gray-700">Step 2: Get Output</h2>
+      <h2 class="text-2xl font-semibold mb-4 text-gray-700">第二步: 获取输出</h2>
       <form id="outForm" class="flex flex-wrap gap-6 items-end">
         <div class="flex-1">
-          <label class="block text-gray-600 font-medium mb-1">Task ID</label>
-          <input type="text" id="outTaskId" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div class="flex-1">
-          <label class="block text-gray-600 font-medium mb-1">Agent Name</label>
+          <label class="block text-gray-600 font-medium mb-1">选择主机</label>
           <select id="outName" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <!-- 这里选择的值，与后端proxy配置文件中的targets对应 -->
             <option value="test">test</option>
             <option value="web">web</option>
             <option value="backend">backend</option>
           </select>
         </div>
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded shadow">OutPut</button>
+
+        <div class="flex-1">
+          <label class="block text-gray-600 font-medium mb-1">任务 ID</label>
+          <select id="outTaskId" class="w-full border border-gray-300 rounded px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- Select Task --</option>
+          </select>
+        </div>
+
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded shadow">查看输出</button>
       </form>
     </div>
 
     <!-- Output -->
     <div>
-      <h2 class="text-2xl font-semibold mb-2 text-gray-700">Output</h2>
+      <h2 class="text-2xl font-semibold mb-2 text-gray-700">控制台输出</h2>
       <div id="output" class="bg-black text-green-400 font-mono p-6 rounded h-96 overflow-y-scroll whitespace-pre-wrap"></div>
     </div>
   </div>
 
   <script>
     const outputDiv = document.getElementById("output");
+    const outNameSelect = document.getElementById("outName");
+    const outTaskSelect = document.getElementById("outTaskId");
 
+    let currentWs = null; // 当前 WebSocket 连接
+
+    // Step 1: Run Task
     document.getElementById("runForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       outputDiv.innerHTML = "";
 
       const agentName = document.getElementById("agentName").value;
-      const name = document.getElementById("runName").value;
       const cmd = document.getElementById("cmd").value.split(" ");
 
       try {
         const resp = await fetch(`/api/cmd/add?name=${agentName}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, cmd: cmd.join(" ") })
+          body: JSON.stringify({ cmd: cmd.join(" ") })
         });
 
-        console.log("Response object:", resp);
-
-        if (resp.status >= 200 && resp.status < 300) {
+        if (resp.ok) {
           const data = await resp.json();
           const taskId = data.task_id;
           document.getElementById("taskId").innerText = taskId;
-          document.getElementById("outTaskId").value = taskId;
           outputDiv.innerHTML += "[Task started: " + taskId + "]\n";
         } else {
           const text = await resp.text();
-          outputDiv.innerHTML += `[Run failed: ${resp.status} ${resp.statusText}] ${text}\n`;
+          outputDiv.innerHTML += `[Run failed: ${resp.status}] ${text}\n`;
         }
       } catch (err) {
         outputDiv.innerHTML += "[Fetch error: " + err.message + "]\n";
       }
     });
 
+    // Step 2: Agent change -> fetch tasks
+    outNameSelect.addEventListener("change", async () => {
+      const agentName = outNameSelect.value;
+      try {
+        const resp = await fetch(`/api/cmd/ids?name=${agentName}`);
+        const data = await resp.json();
+
+        outTaskSelect.innerHTML = ""; // 清空
+        if (data.tasks && data.tasks.length > 0) {
+          data.tasks.forEach(taskId => {
+            const opt = document.createElement("option");
+            opt.value = taskId;
+            opt.textContent = taskId;
+            outTaskSelect.appendChild(opt);
+          });
+        } else {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "No tasks";
+          outTaskSelect.appendChild(opt);
+        }
+      } catch (err) {
+        outTaskSelect.innerHTML = `<option value="">Error loading tasks</option>`;
+      }
+    });
+
+    // Step 2: Connect WebSocket
     document.getElementById("outForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      const taskId = document.getElementById("outTaskId").value;
-      const name = document.getElementById("outName").value;
+      const taskId = outTaskSelect.value;
+      const name = outNameSelect.value;
+
+      if (!taskId) {
+        outputDiv.innerHTML += "[Please select a Task ID]\n";
+        return;
+      }
+
+      // 关闭旧连接
+      if (currentWs) {
+        currentWs.close();
+        currentWs = null;
+      }
+
+      // 切换任务时清空输出
+      outputDiv.innerHTML = "";
 
       const wsUrl = `ws://${window.location.host}/api/cmd/out?task_id=${taskId}&name=${name}`;
       const ws = new WebSocket(wsUrl);
+      currentWs = ws;
 
-      ws.onopen = () => { outputDiv.innerHTML += "[Connected...]\n"; };
+      ws.onopen = () => { outputDiv.innerHTML += `[Connected to ${taskId}] \n`; };
       ws.onmessage = (event) => {
         outputDiv.innerHTML += event.data + "\n";
         outputDiv.scrollTop = outputDiv.scrollHeight;
       };
-      ws.onerror = (err) => { outputDiv.innerHTML += "[Error]\n"; };
-      ws.onclose = () => { outputDiv.innerHTML += "[Disconnected]\n"; };
+      ws.onerror = () => { outputDiv.innerHTML += "[Error]\n"; };
+      ws.onclose = () => {
+        outputDiv.innerHTML += `[Disconnected from ${taskId}]\n`;
+        if (currentWs === ws) {
+          currentWs = null;
+        }
+      };
     });
   </script>
 </body>

@@ -16,6 +16,8 @@ type Agent struct {
 	TaskNum      int           `yaml:"taskNum" default:"8"`
 	ReadTimeout  time.Duration `yaml:"readTimeout" default:"60m"`
 	WriteTimeout time.Duration `yaml:"writeTimeout" default:"60m"`
+	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
+	WhiteList    []string      `ymal:"whiteList" default:"127.0.0.1"`
 }
 
 func (a *Agent) Validate() error {

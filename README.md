@@ -4,14 +4,13 @@
 ```shell
 method POST  /api/cmd/run?name=test
 {
-    name: "project"  # 这个参数没有使用
     cmd: "echo 'hello world'"
 }
 # 返回 {"task_id": "0929129c-a44b-4bab-8f64-99a7cba45339"}
 
 method GET /api/cmd/out?task_id=0929129c-a44b-4bab-8f64-99a7cba45339
 
-method GET /api/cmd/list
+method GET /api/cmd/ids
 ```
 
 - **示例**  

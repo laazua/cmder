@@ -5,6 +5,10 @@
 addr: 0.0.0.0:5533
 readTimeout: 60m
 writeTimeout: 60m
+xSecurityKey: IznUi6Au2PU=
+whiteList:
+  - 127.0.0.1
+  - 192.168.154.144
 
 targets:
   - name: test   # agent主机名

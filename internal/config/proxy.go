@@ -15,6 +15,8 @@ type Proxy struct {
 	Addr         string        `yaml:"addr" default:"localhost:5533"`
 	ReadTimeout  time.Duration `yaml:"readTimeout" default:"30m"`
 	WriteTimeout time.Duration `yaml:"writeTimeout" default:"30m"`
+	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
+	WhiteList    []string      `ymal:"whiteList" default:"127.0.0.1"`
 	Targets      []Target      `yaml:"targets"`
 }
 

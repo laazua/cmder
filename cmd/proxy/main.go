@@ -19,7 +19,7 @@ func main() {
 	// agent中路由如下:
 	//     /api/cmd/add
 	//     /api/cmd/out
-	//     /api/cmd/state
+	//     /api/cmd/ids
 	mux.HandleFunc("/", api.Index)
 	mux.HandleFunc("/api/cmd/", api.Forward)
 	server := http.Server{
