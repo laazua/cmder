@@ -287,8 +287,7 @@ func proxyCopy(errc chan<- error, src, dst *websocket.Conn) {
 	}
 }
 
-//
-
+// forbiddenCmds 禁止命令
 func forbiddenCmds(cmd string) bool {
 	for _, fcmd := range config.GetAgent().ForbiddenCmds {
 		if strings.Contains(cmd, fcmd) {

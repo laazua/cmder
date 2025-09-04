@@ -18,7 +18,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// AddCmd 添加命令任务（原有）
+// AddCmd 添加命令任务
 func AddCmd(w http.ResponseWriter, r *http.Request) {
 	slog.Info("/api/cmd/run ...")
 	var req struct {
@@ -50,7 +50,7 @@ func AddCmd(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"task_id": taskId})
 }
 
-// OutCmd 执行任务并获取输出（原有）
+// OutCmd 执行任务并获取输出
 func OutCmd(w http.ResponseWriter, r *http.Request) {
 	slog.Info("/api/cmd/out ...")
 	taskId := r.URL.Query().Get("task_id")
@@ -101,7 +101,7 @@ func OutCmd(w http.ResponseWriter, r *http.Request) {
 	rtask.mu.Unlock()
 }
 
-// ListTask 查询添加了哪些命令任务（原有）
+// ListTask 查询添加了哪些命令任务
 func ListTask(w http.ResponseWriter, r *http.Request) {
 	slog.Info("/api/cmd/ids ...")
 	_ = json.NewEncoder(w).Encode(map[string]any{
@@ -110,11 +110,7 @@ func ListTask(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RunScriptWS 通过 WebSocket 输入脚本并执行
-// 协议：客户端建立 WS 后可立即收到 {"task_id": "...", "status":"started"}；
-// 然后把脚本文本（可多次分片发送）以 TextMessage 发送；
-// 发送 "__EOF__" 表示脚本发送完毕，服务器关闭 stdin 并等待退出；
-// 期间实时把 stdout/stderr 的行回写给客户端；退出后发送 {"status":"exit","code":0} 并关闭 WS。
+// RunScriptWS 执行脚本接口
 func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 	slog.Info("/api/cmd/runws ...")
 	conn, err := upgrader.Upgrade(w, r, nil)
