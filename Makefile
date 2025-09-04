@@ -6,7 +6,7 @@ agent_bin := bin/agent/$(agent)
 proxy_bin := bin/proxy/$(proxy)
 build_args := -mod=vendor -ldflags="-w -s" -trimpath
 
-.PHONY: clean build agent proxy
+.PHONY: clean build agent proxy vendor
 
 # 设置静态编译
 CLIB_ENABLE := $(shell go env CGO_ENABLED)
@@ -14,7 +14,24 @@ ifeq ($(CLIB_ENABLE),1)
 	go env -w CGO_ENABLED=0
 endif
 
-build: $(agent_bin) $(proxy_bin)
+# 设置平台
+GO_PLATFORM := $(shell go env GOOS)
+ifneq ($(GO_PLATFORM), linux)
+    go env -w GOOS=linux
+endif
+# 设置架构
+GO_ARCH := $(shell go env GOARCH)
+ifneq ($(GO_ARCH), amd64)
+    go env -w GOARCH=amd64
+endif
+
+# 在 build 目标前添加 vendor 依赖
+build: vendor $(agent_bin) $(proxy_bin)
+
+# vendor 目标：创建 vendor 目录
+vendor:
+	go mod vendor
+	@echo "Vendor directory created/updated"
 
 $(agent_bin): cmd/agent/*.go
 	go build -C cmd/agent -o $(agent) $(build_args)
@@ -38,7 +55,7 @@ $(proxy_bin): cmd/proxy/*.go
 
 	@if [ ! -d bin/proxy/web ]; then \
 	    mkdir -p bin/proxy/web; \
-		cp web/index.html bin/proxy/web; \
+		cp cmd/proxy/web/index.html bin/proxy/web; \
 	fi
 	
 agent: $(agent_bin)
@@ -50,7 +67,6 @@ proxy: $(proxy_bin)
 	@trap '' INT; cd bin/proxy && ./$(proxy) || true
 
 clean:
-	rm -rf bin
+	rm -rf bin vendor
 	rm -f cmd/agent/$(agent)
 	rm -f cmd/proxy/$(proxy)
-	

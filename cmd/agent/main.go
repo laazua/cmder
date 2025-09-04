@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -13,15 +14,15 @@ import (
 )
 
 func main() {
-
 	mux := http.NewServeMux()
 	agentC := config.GetAgent()
-
 	addCmd := api.Key(agentC, api.IpCheck(agentC, api.AddCmd))
 	outCmd := api.Key(agentC, api.IpCheck(agentC, api.OutCmd))
+	script := api.Key(agentC, api.IpCheck(agentC, api.RunScriptWS))
 	listTask := api.Key(agentC, api.IpCheck(agentC, api.ListTask))
 	mux.HandleFunc("POST /api/cmd/add", addCmd)
 	mux.HandleFunc("GET /api/cmd/out", outCmd)
+	mux.HandleFunc("GET /api/cmd/runws", script)
 	mux.HandleFunc("GET /api/cmd/ids", listTask)
 	// 资源占用情况调试
 	// go func() {

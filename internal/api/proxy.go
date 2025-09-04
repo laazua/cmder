@@ -1,10 +1,10 @@
 package api
 
 import (
+	_ "embed"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 	"text/template"
 
 	"cmder/internal/config"
@@ -12,12 +12,21 @@ import (
 
 // Index 渲染模板文件
 func Index(w http.ResponseWriter, r *http.Request) {
-	tmplPath := filepath.Join("web", "index.html")
-	tmpl, err := template.ParseFiles(tmplPath)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// -- 解析操作系统上的模板文件
+	// tmplPath := filepath.Join("web", "index.html")
+	// tmpl, err := template.ParseFiles(tmplPath)
+	// if err != nil {
+	// 	http.Error(w, "加载模板文件失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// -- 解析嵌入内存的模板内容
+	tmpl, err := template.New("index").Parse(embeddedIndexHTML)
 	if err != nil {
-		http.Error(w, "加载模板文件失败: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "加载模板失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	if err := tmpl.Execute(w, nil); err != nil {
 		http.Error(w, "渲染模板文件失败: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -25,9 +34,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 // Forward 请求转发接口
 func Forward(w http.ResponseWriter, r *http.Request) {
-
-	slog.Info("代理转发请求...", slog.String("uri", r.URL.RequestURI()))
-
 	targetName := r.URL.Query().Get("name")
 	var targetURI string
 	for _, t := range config.GetProxy().Targets {
@@ -41,8 +47,10 @@ func Forward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isWebSocketRequest(r) {
+		slog.Info("代理转发websocket请求...", slog.String("Uri", r.URL.Path))
 		forwardWebSocket(w, r, targetURI)
 	} else {
+		slog.Info("代理转发http请求...", slog.String("Uri", r.URL.Path))
 		forwardHTTP(w, r, targetURI)
 	}
 }

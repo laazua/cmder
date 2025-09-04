@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -12,14 +13,19 @@ import (
 	"cmder/internal/config"
 )
 
-func main() {
+//go:embed web/index.html
+var indexHTML string
 
+func main() {
+	// 嵌入html文件
+	api.InitWebContent(indexHTML)
 	mux := http.NewServeMux()
 	// 这里填写的"/api/cmd/" 是agent端的上层路由
 	// agent中路由如下:
 	//     /api/cmd/add
 	//     /api/cmd/out
 	//     /api/cmd/ids
+	//     /api/cmd/runws
 	index := api.IpCheck(config.GetProxy(), api.Index)
 	forword := api.IpCheck(config.GetProxy(), api.Forward)
 	targets := api.IpCheck(config.GetProxy(), api.Targets)
@@ -49,6 +55,6 @@ func main() {
 	case err := <-start:
 		slog.Error("Proxy启动失败", slog.String("Error", err.Error()))
 	case sig := <-quit:
-		slog.Info("pubot关闭,并清理资源", slog.String("Signal", sig.String()))
+		slog.Info("Proxy关闭,并清理资源", slog.String("Signal", sig.String()))
 	}
 }

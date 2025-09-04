@@ -1,20 +1,14 @@
 ### cmder
 
-- **api**
-```shell
-method POST  /api/cmd/run?name=test
-{
-    cmd: "echo 'hello world'"
-}
-# 返回 {"task_id": "0929129c-a44b-4bab-8f64-99a7cba45339"}
+- **说明**
+1. 通过cmd-proxy代理转发需要执行的操作到cmd-agent所在主机进行操作
+2. 部署:
+   1. make 
+   2. 将bin目录下生成的打包文件分别部署到指定主机上
 
-method GET /api/cmd/out?task_id=0929129c-a44b-4bab-8f64-99a7cba45339
-
-method GET /api/cmd/ids
-```
 - **示例**  
-  ![web示例](docs/cmder.png)
-
+  ![命令](docs/cmd.png)
+  ![脚本](docs/shell.png)
 
 <!-- - **接口测试**
 ```bash

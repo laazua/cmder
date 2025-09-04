@@ -197,6 +197,7 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 	// 1) 构造后端 ws/wss URL
 	wsURL, err := url.Parse(targetURI)
 	if err != nil {
+		slog.Error("无效的uri", slog.String("Err", err.Error()))
 		http.Error(w, "无效的uri: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -208,7 +209,6 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 	}
 	wsURL.Path = singleJoinPath(wsURL.Path, r.URL.Path)
 	wsURL.RawQuery = r.URL.RawQuery
-
 	// 2) Dial 到后端：过滤会由 Dialer 自动设置/可能导致重复的头
 	//    注意：必须使用 Canonical 形式（Sec-Websocket-Key 等）
 	skip := canonicalSet(
@@ -243,9 +243,9 @@ func forwardWebSocket(w http.ResponseWriter, r *http.Request, targetURI string) 
 		EnableCompression: false, // 避免压缩带来的复杂性
 		Subprotocols:      subprotocols,
 	}
-
 	backendConn, _, err := dialer.Dial(wsURL.String(), backendHeaders)
 	if err != nil {
+		slog.Error("拨号失败...", slog.String("Err", err.Error()))
 		http.Error(w, "拨号agent失败: "+err.Error(), http.StatusBadGateway)
 		return
 	}

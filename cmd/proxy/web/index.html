@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CMDER</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* 滚动条样式 */
+  .scrollbar::-webkit-scrollbar { width: 8px; }
+  .scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.6); border-radius: 4px; }
+  .scrollbar::-webkit-scrollbar-track { background-color: rgba(0, 0, 0, 0.06); }
+
+  /* 控制台高亮 */
+  .log-info { color: #93c5fd; }   /* INFO - 蓝 */
+  .log-error { color: #f87171; }  /* ERROR - 红 */
+  .log-ws { color: #a78bfa; }     /* WS - 紫 */
+
+  /* 卡片切换动画 */
+  .card-hidden { opacity: 0; transform: translateY(6px); pointer-events: none; }
+  .card-shown  { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .card-transition { transition: opacity 220ms ease, transform 220ms ease; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen p-6 font-sans flex flex-col items-center">
+
+  <!-- 顶部切换（Tab） -->
+  <div class="w-full max-w-7xl flex justify-between items-center mb-2">
+    <div class="text-2xl font-bold text-gray-800">CMDER</div>
+    <div class="flex gap-2">
+      <button id="tabTasks" class="px-4 py-2 rounded-lg shadow font-semibold bg-blue-600 text-white">执行命令</button>
+      <button id="tabScripts" class="px-4 py-2 rounded-lg shadow font-semibold bg-gray-200 text-gray-700">执行脚本</button>
+    </div>
+  </div>
+
+  <!-- 主体容器 -->
+  <div class="w-full max-w-7xl flex justify-center my-2">
+    <div class="w-full py-6 space-y-6">
+      <!-- 卡片 A -->
+      <div id="cardTasks" class="card-shown card-transition bg-white rounded-2xl shadow-2xl p-6 space-y-6 mx-auto">
+        <div class="flex items-center justify-between">
+          <h2 class="text-2xl font-semibold text-gray-700">命令执行</h2>
+          <div class="text-sm text-gray-500">通过 proxy 转发命令 并实时查看 WS 输出</div>
+        </div>
+        <!-- Step1: 添加任务 -->
+        <div class="space-y-3">
+          <h3 class="text-lg font-medium text-gray-600">添加任务</h3>
+          <form id="runForm" class="flex flex-col md:flex-row gap-3">
+            <div class="flex-1 flex flex-col">
+              <select id="agentName" class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"></select>
+            </div>
+            <div class="flex-[2] flex flex-col">
+              <input id="cmd" type="text" placeholder="请输入要执行的命令" class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+            </div>
+          </form>
+          <div class="flex flex-col md:flex-row md:items-start gap-3 items-center text-sm">
+            <button type="submit" form="runForm" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow text-sm">新增任务</button>
+            <div class="text-gray-500 text-sm">Task ID: <span id="taskId" class="font-mono text-blue-600">-</span></div>
+          </div>
+        </div>
+
+        <!-- Step2: 获取输出 -->
+        <div class="space-y-3">
+          <h3 class="text-lg font-medium text-gray-600">获取输出</h3>
+          <div class="flex flex-col md:flex-row gap-3 items-end">
+            <div class="flex-1 flex flex-col">
+              <select id="outName" class="border border-gray-300 rounded px-3 py-2 w-full"></select>
+            </div>
+            <div class="flex-[2] flex flex-col">
+              <select id="outTaskId" class="border border-gray-300 rounded px-3 py-2 w-full">
+                <option value="">-- 选择任务 --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 控制台输出 -->
+        <div class="space-y-2 mb-6">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-600">控制台命令输出</h3>
+            <button id="btnOut" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded shadow text-sm">查看输出</button>
+          </div>
+          <div id="output" class="bg-gray-900 text-green-400 font-mono rounded-xl p-4 h-80 overflow-y-auto whitespace-pre-wrap scrollbar"></div>
+        </div>
+      </div>
+
+      <!-- 卡片 B -->
+      <div id="cardScripts" class="card-hidden card-transition hidden bg-white rounded-2xl shadow-2xl p-6 space-y-6 mx-auto">
+        <div class="flex items-center justify-between">
+          <h2 class="text-2xl font-semibold text-gray-700">脚本执行</h2>
+          <div class="text-sm text-gray-500">通过 WebSocket 发送脚本并实时查看 WS 输出</div>
+        </div>
+
+        <form id="wsForm" class="flex flex-col gap-3">
+          <div>
+            <label class="block text-gray-600 mb-1">选择主机</label>
+            <select id="wsName" class="w-full border border-gray-300 rounded px-3 py-2"></select>
+          </div>
+          <div>
+            <label class="block text-gray-600 mb-1">脚本文本</label>
+            <textarea id="wsScript" rows="8" placeholder="#!/usr/bin/env bash
+echo hello
+uname -a" class="w-full border border-gray-300 rounded px-3 py-2 font-mono"></textarea>
+          </div>
+
+          <div class="flex gap-3">
+            <button id="wsRun" type="button" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded shadow">执行脚本</button>
+            <button id="wsSendEOF" type="button" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded shadow">发送结束信号</button>
+            <button id="wsClose" type="button" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded shadow">断开连接</button>
+          </div>
+
+          <div class="text-sm text-gray-500">Task ID: <span id="wsTaskId" class="font-mono text-blue-600">-</span></div>
+
+          <div>
+            <h3 class="text-lg font-medium text-gray-600">控制台脚本输出</h3>
+            <div id="wsOutput" class="bg-gray-900 text-green-400 font-mono rounded-xl p-4 h-80 overflow-y-auto whitespace-pre-wrap scrollbar"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* DOM references */
+const outputDiv = document.getElementById("output");
+const wsOutputDiv = document.getElementById("wsOutput");
+const outNameSelect = document.getElementById("outName");
+const outTaskSelect = document.getElementById("outTaskId");
+const wsNameSelect = document.getElementById("wsName");
+const btnOut = document.getElementById("btnOut");
+
+/* 控制变量 */
+let currentWs = null;
+let runWs = null;
+let runWsOpen = false;
+
+function appendLog(div, type, text) {
+  const span = document.createElement("span");
+  span.className = type === "error" ? "log-error" : type === "ws" ? "log-ws" : "log-info";
+  span.textContent = text + "\n";
+  div.appendChild(span);
+  div.scrollTop = div.scrollHeight;
+}
+
+/* 加载主机 */
+async function loadHosts() {
+  try {
+    const resp = await fetch("/api/targets");
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    const hosts = data.targets || [];
+    ["agentName", "outName", "wsName"].forEach(id => {
+      const select = document.getElementById(id);
+      select.innerHTML = "";
+      hosts.forEach(h => {
+        const opt = document.createElement("option");
+        opt.value = h; opt.textContent = h;
+        select.appendChild(opt);
+      });
+    });
+  } catch {
+    ["agentName", "outName", "wsName"].forEach(id => {
+      document.getElementById(id).innerHTML = "<option value=''>加载失败</option>";
+    });
+  }
+}
+loadHosts();
+
+/* Step1: 新增任务 */
+document.getElementById("runForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  outputDiv.innerHTML = "";
+  const agentName = document.getElementById("agentName").value;
+  const cmd = document.getElementById("cmd").value;
+  if (!agentName || !cmd) { appendLog(outputDiv, "error", "请选择主机并输入命令"); return; }
+  try {
+    const resp = await fetch(`/api/cmd/add?name=${agentName}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      document.getElementById("taskId").innerText = data.task_id;
+      appendLog(outputDiv, "info", `[Task started: ${data.task_id}]`);
+    } else {
+      const text = await resp.text();
+      appendLog(outputDiv, "error", `[Run failed: ${resp.status}] ${text}`);
+    }
+  } catch (err) {
+    appendLog(outputDiv, "error", `[Fetch error: ${err.message}]`);
+  }
+});
+
+/* Step2: 获取输出 Task ID */
+outNameSelect.addEventListener("change", async () => {
+  const agentName = outNameSelect.value;
+  try {
+    const resp = await fetch(`/api/cmd/ids?name=${agentName}`);
+    const data = await resp.json();
+    outTaskSelect.innerHTML = "";
+    if (data.tasks && data.tasks.length) {
+      data.tasks.forEach(taskId => {
+        const opt = document.createElement("option");
+        opt.value = taskId; opt.textContent = taskId;
+        outTaskSelect.appendChild(opt);
+      });
+    } else outTaskSelect.innerHTML = "<option value=''>No tasks</option>";
+  } catch {
+    outTaskSelect.innerHTML = "<option value=''>Error loading tasks</option>";
+  }
+});
+
+/* 点击查看输出 */
+btnOut.addEventListener("click", () => {
+  const taskId = outTaskSelect.value;
+  const name = outNameSelect.value;
+  if (!taskId) { appendLog(outputDiv, "error", "请选择 Task ID"); return; }
+  if (currentWs) { currentWs.close(); currentWs = null; }
+  outputDiv.innerHTML = "";
+
+  const schema = location.protocol === "https:" ? "wss" : "ws";
+  const wsUrl = `${schema}://${window.location.host}/api/cmd/out?task_id=${encodeURIComponent(taskId)}&name=${encodeURIComponent(name)}`;
+  currentWs = new WebSocket(wsUrl);
+  currentWs.onopen = () => appendLog(outputDiv, "ws", `[Connected to ${taskId}]`);
+  currentWs.onmessage = ev => appendLog(outputDiv, "info", ev.data);
+  currentWs.onerror = () => appendLog(outputDiv, "error", "[Error]");
+  currentWs.onclose = () => appendLog(outputDiv, "ws", `[Disconnected from ${taskId}]`);
+});
+
+/* Step3: WS 脚本执行 */
+document.getElementById("wsRun").addEventListener("click", () => {
+  const name = wsNameSelect.value;
+  const script = document.getElementById("wsScript").value || "";
+  if (!name || !script) { appendLog(wsOutputDiv, "error", "请选择主机并输入脚本"); return; }
+
+  if (runWs) { runWs.close(); runWs = null; runWsOpen = false; }
+  wsOutputDiv.innerHTML = "";
+
+  runWs = new WebSocket(`/api/cmd/runws?name=${encodeURIComponent(name)}`);
+  runWs.onopen = () => { runWsOpen = true; appendLog(wsOutputDiv, "ws", "[WS connected for script run]"); };
+  runWs.onmessage = ev => {
+    try {
+      const data = JSON.parse(ev.data);
+      if (data.task_id) {
+        document.getElementById("wsTaskId").innerText = data.task_id;
+        appendLog(wsOutputDiv, "ws", `[Task started: ${data.task_id}]`);
+        runWs.send(script); runWs.send("__EOF__");
+        return;
+      }
+    } catch {}
+    appendLog(wsOutputDiv, "info", ev.data);
+  };
+  runWs.onerror = () => appendLog(wsOutputDiv, "error", "[WS error]");
+  runWs.onclose = () => { runWsOpen = false; appendLog(wsOutputDiv, "ws", "[WS disconnected]"); };
+});
+
+document.getElementById("wsSendEOF").addEventListener("click", () => {
+  if (runWs && runWsOpen) { runWs.send("__EOF__"); appendLog(wsOutputDiv, "ws", "[Sent EOF]"); }
+});
+document.getElementById("wsClose").addEventListener("click", () => {
+  if (runWs) { runWs.close(); runWs = null; runWsOpen = false; }
+});
+
+/* Tab */
+const tabTasks = document.getElementById("tabTasks");
+const tabScripts = document.getElementById("tabScripts");
+const cardTasks = document.getElementById("cardTasks");
+const cardScripts = document.getElementById("cardScripts");
+
+function switchTab(showCard, hideCard, activeBtn, inactiveBtn) {
+  hideCard.classList.add("hidden", "card-hidden");
+  hideCard.classList.remove("card-shown");
+  showCard.classList.remove("hidden", "card-hidden");
+  showCard.classList.add("card-shown");
+
+  activeBtn.classList.add("bg-blue-600", "text-white");
+  activeBtn.classList.remove("bg-gray-200", "text-gray-700");
+  inactiveBtn.classList.add("bg-gray-200", "text-gray-700");
+  inactiveBtn.classList.remove("bg-blue-600", "text-white");
+}
+
+tabTasks.addEventListener("click", () => switchTab(cardTasks, cardScripts, tabTasks, tabScripts));
+tabScripts.addEventListener("click", () => switchTab(cardScripts, cardTasks, tabScripts, tabTasks));
+</script>
+</body>
+</html>
