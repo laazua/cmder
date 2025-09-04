@@ -118,6 +118,7 @@
           document.getElementById("taskId").innerText = taskId;
           outputDiv.innerHTML += "[Task started: " + taskId + "]\n";
         } else {
+          console.log("xxxxxxxxx", resp)
           const text = await resp.text();
           outputDiv.innerHTML += `[Run failed: ${resp.status}] ${text}\n`;
         }

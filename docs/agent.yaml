@@ -16,3 +16,4 @@ whiteList:
 # 被封禁的命令
 forbiddenCmds:
   - ls
+

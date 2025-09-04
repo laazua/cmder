@@ -4,6 +4,7 @@ agent := cmd-agent
 proxy := cmd-proxy
 agent_bin := bin/agent/$(agent)
 proxy_bin := bin/proxy/$(proxy)
+build_args := -mod=vendor -ldflags="-w -s" -trimpath
 
 .PHONY: clean build agent proxy
 
@@ -16,7 +17,7 @@ endif
 build: $(agent_bin) $(proxy_bin)
 
 $(agent_bin): cmd/agent/*.go
-	go build -C cmd/agent -o $(agent) -mod=vendor -ldflags="-w -s"
+	go build -C cmd/agent -o $(agent) $(build_args)
 	@if [ ! -d bin/agent ]; then \
 		mkdir -p bin/agent; \
 	fi
@@ -26,7 +27,7 @@ $(agent_bin): cmd/agent/*.go
 	fi
 
 $(proxy_bin): cmd/proxy/*.go
-	go build -C cmd/proxy -o $(proxy) -mod=vendor -ldflags="-w -s"
+	go build -C cmd/proxy -o $(proxy) $(build_args)
 	@if [ ! -d bin/proxy ]; then \
 		mkdir -p bin/proxy; \
 	fi

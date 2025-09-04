@@ -17,3 +17,4 @@ targets:
     address: http://127.0.0.1:5544  # agent服务请求接口
   - name: web
     address: http://192.168.165.87:5544
+
