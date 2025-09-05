@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os/exec"
@@ -118,12 +119,8 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "WebSocket upgrade failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
+	defer func() { _ = conn.Close() }()
 	taskID := uuid.New().String()
-
 	// 用 bash -s 从 stdin 读取脚本
 	cmd := exec.Command("bash", "-s")
 	stdin, err := cmd.StdinPipe()
@@ -141,19 +138,16 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("init stderr failed: "+err.Error()))
 		return
 	}
-
 	// 告知客户端 task_id
 	_ = conn.WriteJSON(map[string]any{
 		"task_id": taskID,
 		"status":  "started",
 		"time":    time.Now().Format(time.RFC3339),
 	})
-
 	if err := cmd.Start(); err != nil {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("start failed: "+err.Error()))
 		return
 	}
-
 	// 读客户端脚本文本 -> 写入 bash stdin
 	doneWrite := make(chan struct{})
 	go func() {
@@ -182,7 +176,6 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
-
 	// 实时把 stdout/stderr 行回写给客户端
 	go func() {
 		reader := bufio.NewReader(stdout)
@@ -204,27 +197,27 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 			_ = conn.WriteMessage(websocket.TextMessage, line)
 		}
 	}()
-
 	// 等待客户端完成发送
 	<-doneWrite
-
 	// 等待进程退出并回传退出码
-	err = cmd.Wait()
-	if err != nil {
+	if err := cmd.Wait(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				_ = conn.WriteJSON(map[string]any{"status": "exit", "code": ws.ExitStatus()})
+			if _, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				// conn.WriteJSON(map[string]any{"status": "exit", "code": ws.ExitStatus()})
 				return
 			}
 		}
-		_ = conn.WriteJSON(map[string]any{"status": "exit", "error": err.Error()})
+		// conn.WriteJSON(map[string]any{"status": "exit", "error": err.Error()})
+		errMsg := fmt.Sprintf("===== 报错: %v =====", err.Error())
+		conn.WriteMessage(websocket.TextMessage, []byte(errMsg))
+
 		return
 	}
 	if ps := cmd.ProcessState; ps != nil {
-		if ws, ok := ps.Sys().(syscall.WaitStatus); ok {
-			_ = conn.WriteJSON(map[string]any{"status": "exit", "code": ws.ExitStatus()})
+		if _, ok := ps.Sys().(syscall.WaitStatus); ok {
+			// conn.WriteJSON(map[string]any{"status": "exit", "code": ws.ExitStatus()})
 			return
 		}
 	}
-	_ = conn.WriteJSON(map[string]any{"status": "exit", "code": 0})
+	conn.WriteMessage(websocket.TextMessage, []byte("=============== 脚本运行完成 ==============="))
 }
