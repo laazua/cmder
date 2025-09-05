@@ -242,7 +242,7 @@ document.getElementById("wsRun").addEventListener("click", () => {
       if (data.task_id) {
         document.getElementById("wsTaskId").innerText = data.task_id;
         appendLog(wsOutputDiv, "ws", `[Task started: ${data.task_id}]`);
-        runWs.send(script); runWs.send("__EOF__");
+        runWs.send(script); runWs.send("EOF");
         return;
       }
     } catch {}

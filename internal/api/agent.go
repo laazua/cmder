@@ -2,12 +2,12 @@ package api
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -139,13 +139,9 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 告知客户端 task_id
-	_ = conn.WriteJSON(map[string]any{
-		"task_id": taskID,
-		"status":  "started",
-		"time":    time.Now().Format(time.RFC3339),
-	})
+	conn.WriteJSON(map[string]any{"task_id": taskID, "status": "started", "time": time.Now().Format(time.RFC3339)})
 	if err := cmd.Start(); err != nil {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("start failed: "+err.Error()))
+		conn.WriteMessage(websocket.TextMessage, []byte("start failed: "+err.Error()))
 		return
 	}
 	// 读客户端脚本文本 -> 写入 bash stdin
@@ -153,7 +149,6 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer close(doneWrite)
 		defer func() { _ = stdin.Close() }()
-
 		for {
 			mt, msg, err := conn.ReadMessage()
 			if err != nil {
@@ -164,7 +159,7 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			// 约定 "__EOF__" 作为脚本结束
-			if bytes.Equal(msg, []byte("__EOF__")) {
+			if strings.Contains(string(msg), "EOF") {
 				return
 			}
 			// 写入脚本内容，并确保以换行结尾
@@ -172,7 +167,7 @@ func RunScriptWS(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if len(msg) == 0 || msg[len(msg)-1] != '\n' {
-				_, _ = stdin.Write([]byte("\n"))
+				stdin.Write([]byte("\n"))
 			}
 		}
 	}()
