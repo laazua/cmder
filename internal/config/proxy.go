@@ -12,12 +12,14 @@ var (
 )
 
 type Proxy struct {
-	Addr         string        `yaml:"addr" default:"localhost:5533"`
-	ReadTimeout  time.Duration `yaml:"readTimeout" default:"30m"`
-	WriteTimeout time.Duration `yaml:"writeTimeout" default:"30m"`
-	XSecurityKey string        `yaml:"xSecurityKey" default:"xSecurityKey"`
-	WhiteList    []string      `yaml:"whiteList"`
-	Targets      []Target      `yaml:"targets"`
+	Addr            string        `yaml:"addr" default:"localhost:5533"`       // 监听地址
+	ReadTimeout     time.Duration `yaml:"readTimeout" default:"30m"`           // http读超时
+	WriteTimeout    time.Duration `yaml:"writeTimeout" default:"30m"`          // http写超时
+	XSecurityKey    string        `yaml:"xSecurityKey" default:"xSecurityKey"` // 密钥
+	AccessStartTime time.Duration `yaml:"accessStartTime" default:"9h"`        // 允许访问开始时间
+	AccessEndTime   time.Duration `yaml:"accessEndTime" default:"18h"`         // 允许访问结束时间
+	WhiteList       []string      `yaml:"whiteList"`                           // IP白名单
+	Targets         []Target      `yaml:"targets"`
 }
 
 type Target struct {
@@ -44,6 +46,12 @@ func (p *Proxy) GetWhiteList() []string {
 
 func (p *Proxy) GetXSecurityKey() string {
 	return p.XSecurityKey
+}
+func (p *Proxy) GetAcStartTime() time.Duration {
+	return p.AccessStartTime
+}
+func (p *Proxy) GetAcEndTime() time.Duration {
+	return p.AccessEndTime
 }
 
 func GetProxy() *Proxy {

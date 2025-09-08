@@ -4,7 +4,7 @@ agent := cmd-agent
 proxy := cmd-proxy
 agent_bin := bin/agent/$(agent)
 proxy_bin := bin/proxy/$(proxy)
-build_args := -mod=vendor -ldflags="-w -s" -trimpath
+build_args := -ldflags="-w -s" -trimpath
 
 .PHONY: clean build agent proxy vendor
 
@@ -26,7 +26,7 @@ ifneq ($(GO_ARCH), amd64)
 endif
 
 # 在 build 目标前添加 vendor 依赖
-build: vendor $(agent_bin) $(proxy_bin)
+build: $(agent_bin) $(proxy_bin)
 
 # vendor 目标：创建 vendor 目录
 vendor:

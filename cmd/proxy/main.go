@@ -26,9 +26,11 @@ func main() {
 	//     /api/cmd/out
 	//     /api/cmd/ids
 	//     /api/cmd/runws
-	index := api.IpCheck(config.GetProxy(), api.Index)
-	forword := api.IpCheck(config.GetProxy(), api.Forward)
-	targets := api.IpCheck(config.GetProxy(), api.Targets)
+
+	proxyC := config.GetProxy()
+	index := api.TimeRestricted(proxyC, api.IpCheck(proxyC, api.Index))
+	forword := api.TimeRestricted(proxyC, api.IpCheck(proxyC, api.Forward))
+	targets := api.TimeRestricted(proxyC, api.IpCheck(proxyC, api.Targets))
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/api/targets", targets)
 	mux.HandleFunc("/api/cmd/", forword)
